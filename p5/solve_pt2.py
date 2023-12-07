@@ -4,7 +4,7 @@ first = True
 with open("input.txt") as f:
     line = f.readline()
     seeds = list(map(int, line[7:-1].split(' ')))
-    start,amt = seeds[::2],seeds[1::2]
+    seedstarts,seedamts = seeds[::2],seeds[1::2]
     curr_conversion = []
     while True:
         line = f.readline()
@@ -52,44 +52,85 @@ class SeedMap():
         self.seed_map = first_map
     
     def update_with_next_map(self, next_map):
-        self.seed_map.sort(key=lambda x: x[0]) # 
-        next_map.sort(key = lambda x: x[1])
-        print(self.seed_map)
-        print(next_map)
+        self.seed_map.sort(key=lambda x: x[0]) # sort by target class
+        next_map.sort(key = lambda x: x[1]) # sort by src class. this matches with target class from before
         new_map = []
         # repeatedly pop both and construct brand new map?
         while True: # goal here is to go through all of prev seedmap's range and remake it 
+            if len(self.seed_map) == 0:
+                self.seed_map = new_map
+                print(len(next_map))
+                return
             prev_map_front = self.seed_map.pop(0)
             next_map_front = next_map.pop(0)
             
             B_start_prev, A_start, prev_amt = prev_map_front
             C_start, B_start_next, next_amt = next_map_front
 
-            print(f"A {A_start}-{A_start+prev_amt} maps to B {B_start_prev}-{B_start_prev+prev_amt} ({prev_amt})")
-            print(f"B {B_start_next}-{B_start_next+next_amt} maps to C {C_start}-{C_start+next_amt} ({next_amt})")
-            input()
-            assert B_start_prev == B_start_next 
-            assert B_start_prev < B_start_next+next_amt
+            #print(f"A {A_start}-{A_start+prev_amt} maps to B {B_start_prev}-{B_start_prev+prev_amt} ({prev_amt})")
+            #print(f"B {B_start_next}-{B_start_next+next_amt} maps to C {C_start}-{C_start+next_amt} ({next_amt})")
+            
+            if B_start_prev != B_start_next:
+                if B_start_prev > B_start_next:
+                    new_prev = [B_start_next,B_start_next, B_start_prev-B_start_next]
+                    self.seed_map.insert(0, prev_map_front)
+                    prev_map_front = new_prev
+                else:
+                    new_next = [B_start_prev,B_start_prev, B_start_next-B_start_prev]
+                    next_map.insert(0,next_map_front)
+                    next_map_front = new_next
+            
+            B_start_prev, A_start, prev_amt = prev_map_front
+            C_start, B_start_next, next_amt = next_map_front
+
             # 2 cases 
             # the prev category group is entirely mapped by the next category grouping
             if prev_amt < next_amt:
                 new_map.append([C_start, A_start, prev_amt])
                 next_map.insert(0, [C_start+prev_amt, B_start_next+prev_amt, next_amt-prev_amt])
+
             # the prev category group is partially mapped by this next category grouping and a future one
             elif prev_amt > next_amt:
                 new_map.append([C_start, A_start, next_amt])
                 self.seed_map.insert(0,[B_start_prev+next_amt,A_start+next_amt,prev_amt-next_amt])
-                next_map.insert(0,[C_start+next_amt,B_start_next+next_amt,prev_amt-next_amt])
+                #next_map.insert(0,[C_start+next_amt,B_start_next+next_amt,prev_amt-next_amt])
+
             else:
                 new_map.append([C_start, A_start, next_amt])
-                print("moving on")
 
             C_st, A_st, amt = new_map[-1]
-            print(f"A {A_st}-{A_st+amt} maps to C {C_st}-{C_st+amt} ({amt})")
-            input()
+            # print(f"A {A_st}-{A_st+amt} maps to C {C_st}-{C_st+amt} ({amt})")
+
+    def get_location(self, seed):
+        for loc_st,seed_st,amt in self.seed_map:
+            if seed >= seed_st and seed < seed_st+amt:
+                return loc_st + (seed - seed_st)
+            
 
 
 
 
 seedmap = SeedMap(conversions[0])
-seedmap.update_with_next_map(conversions[1])
+for conv in conversions[1:]:
+    seedmap.update_with_next_map(conv)
+#print(seedmap.seed_map)
+#print(len(seedmap.seed_map))
+
+# checks if a seed in in the range of the starting seeds
+def in_seedrange(seed):
+    for i in range(len(seedstarts)):
+        if seed > seedstarts[i] and seed < seedstarts[i]+seedamts[i]:
+            return True
+    return False
+
+
+sorted_seedmap = sorted(seedmap.seed_map, key=lambda x: x[0])
+j = 0
+for loc_st, seed_st, amt in sorted_seedmap:
+    print(f"{j}/{len(sorted_seedmap)}")
+    for i in range(amt):
+        seed = seed_st+amt
+        if in_seedrange(seed):
+            print("Closest location with seed:",loc_st+i)
+            quit()
+    j += 1
