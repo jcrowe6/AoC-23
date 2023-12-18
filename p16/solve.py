@@ -84,20 +84,35 @@ def next_cells(r,c,dir):
               
 
         
+def get_num_energized(initial):
+    frontier = [initial]
+    explored = set()
+    energized = set()
+    while len(frontier) > 0:
+        r,c,dir = frontier.pop(0)
+        if (r,c) not in energized:
+            energized.add((r,c))
+        if (r,c,dir) not in explored:
+            explored.add((r,c,dir))
+            nexts = next_cells(r,c,dir)
+            for c in nexts:
+                frontier.append(c)
 
-frontier = [(0,0,'R')]
-explored = set()
-energized = set()
-while len(frontier) > 0:
-    r,c,dir = frontier.pop(0)
-    if (r,c) not in energized:
-        energized.add((r,c))
-    if (r,c,dir) not in explored:
-        explored.add((r,c,dir))
-        nexts = next_cells(r,c,dir)
-        for c in nexts:
-            frontier.append(c)
-        
-    #print(r,c,dir)
-    print(len(explored))
-print(len(energized))
+    return len(energized)
+
+_max = 0
+for c in range(len(cave[0])):
+    top = get_num_energized((0,c,'D'))
+    if top > _max:
+        _max = top
+    below = get_num_energized((len(cave)-1, c, 'U'))
+    if below > _max:
+        _max = below
+for r in range(len(cave)):
+    left = get_num_energized((r,0,'R'))
+    if left > _max:
+        _max = left
+    right = get_num_energized((r,len(cave[0])-1,'L'))
+    if right > _max:
+        _max = right
+print(_max)
