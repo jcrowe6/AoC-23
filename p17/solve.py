@@ -85,10 +85,10 @@ def neighbors(row,col,dir,steps):
 # dijiktra's
 while True:
     u = smallest_unvisited()
-    if u == goal: break
-    visited.add(u)
-    
     urow,ucol,dir,steps = u
+    if (urow,ucol) == goal: break
+    visited.add(u)   
+   
     for v in neighbors(urow,ucol,dir,steps):
         if v not in visited:
             vrow,vcol,vdir,vsteps = v
@@ -99,12 +99,14 @@ while True:
     #print(len(visited),city.size)
     
 on_path = set()
-curr = goal
+curr = u
 total = 0
-while curr != (0,0):
-    on_path.add(curr)
-    r,c = curr
-    total += city[r][c]
+while True:
+    cr,cc,cd,cs = curr
+    if cr == 0 and cc == 0:
+        break
+    on_path.add((cr,cc))
+    total += city[cr][cc]
     curr = prev[curr]
 print(total)
 
