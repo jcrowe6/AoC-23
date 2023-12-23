@@ -1,16 +1,50 @@
 import numpy as np
 import heapq
+import itertools
+
 city = []
-with open("input.txt") as f:
+with open("input2.txt") as f:
     while True:
         line = f.readline()
         if line == '': break
         city.append(list(map(int,line[:-1])))
 city = np.array(city)
+print(city)
 goal = (city.shape[0]-1,city.shape[1]-1)
-dist = {(0,0,'S',1):0} # dist[(a,b,c)] is dist of shortest path from source to (a,b) while moving c steps in a straight line previously
+#dist = {(0,0,'S',1):0} # dist[(a,b,c)] is dist of shortest path from source to (a,b) while moving c steps in a straight line previously
+
 prev = {}
 visited = set()
+
+dist = []                         # list of entries arranged in a heap
+entry_finder = {}               # mapping of tasks to entries
+REMOVED = '<removed-task>'      # placeholder for a removed task
+counter = itertools.count()     # unique sequence count
+
+def add_task(task, priority=0):
+    'Add a new task or update the priority of an existing task'
+    if task in entry_finder:
+        remove_task(task)
+    count = next(counter)
+    entry = [priority, count, task]
+    entry_finder[task] = entry
+    heapq.heappush(dist, entry)
+
+def remove_task(task):
+    'Mark an existing task as REMOVED.  Raise KeyError if not found.'
+    entry = entry_finder.pop(task)
+    entry[-1] = REMOVED
+
+def pop_task():
+    'Remove and return the lowest priority task. Raise KeyError if empty.'
+    while dist:
+        priority, count, task = heapq.heappop(dist)
+        if task is not REMOVED:
+            del entry_finder[task]
+            return task,priority
+    raise KeyError('pop from an empty priority queue')
+
+add_task((0,0,'S',0),0)
 
 def smallest_unvisited():
     min_ = None
@@ -56,47 +90,56 @@ def unavailable_space(row,col):
 def neighbors(row,col,dir,steps):
     out = []
     if dir == 'S':
-        out = [(0,1,'R',2),(1,0,'D',2)]
+        out = [(0,1,'R',1),(1,0,'D',1)]
     else:
         for r,c in [(row-1,col),(row+1,col),(row,col-1),(row,col+1)]:
             if (dir == 'U' and r>row) or (dir == 'R' and c<col) or (dir == 'D' and r<row) or (dir == 'L' and c>col): continue
             if r >= 0 and r < len(city) and c >= 0 and c < len(city[0]):
                 if r>row: # downward
-                    if dir == 'L' or dir == 'R': out.append((r,c,'D',2))
+                    if dir == 'L' or dir == 'R': out.append((r,c,'D',1))
                     # must be already moving D. if <3 steps, take 3rd and final step along this line
-                    elif steps < 3: out.append((r,c,'D',3))
+                    elif steps < 3: out.append((r,c,'D',steps+1))
                 if r<row: # upward
-                    if dir == 'L' or dir == 'R': out.append((r,c,'U',2))
+                    if dir == 'L' or dir == 'R': out.append((r,c,'U',1))
                     # must be already moving U. if <3 steps, take 3rd and final step along this line
-                    elif steps < 3: out.append((r,c,'U',3))
+                    elif steps < 3: out.append((r,c,'U',steps+1))
                 if c>col: # rightward
-                    if dir == 'U' or dir == 'D': out.append((r,c,'R',2))
+                    if dir == 'U' or dir == 'D': out.append((r,c,'R',1))
                     # must be already moving R. if <3 steps, take 3rd and final step along this line
-                    elif steps < 3: out.append((r,c,'R',3))
+                    elif steps < 3: out.append((r,c,'R',steps+1))
                 if c<col: # leftward
-                    if dir == 'U' or dir == 'D': out.append((r,c,'L',2))
+                    if dir == 'U' or dir == 'D': out.append((r,c,'L',1))
                     # must be already moving L. if <3 steps, take 3rd and final step along this line
-                    elif steps < 3: out.append((r,c,'L',3))
+                    elif steps < 3: out.append((r,c,'L',steps+1))
     #print(row,col,dir,steps)
     #print(out)
     #input()
     return out
 
+for dir in ['U','R','D','L']:
+    for steps in [1,2,3]:
+        print(dir,steps,neighbors(50,50,dir,steps))
+input()
+
 # dijiktra's
 while True:
-    u = smallest_unvisited()
+    #u = smallest_unvisited()
+    u,ucost = pop_task()
     urow,ucol,dir,steps = u
-    if (urow,ucol) == goal: break
+    if (urow,ucol) == goal: print(u,ucost)
     visited.add(u)   
    
     for v in neighbors(urow,ucol,dir,steps):
         if v not in visited:
             vrow,vcol,vdir,vsteps = v
-            cost = dist[u] + city[vrow][vcol]
+            cost = ucost + city[vrow][vcol]
+            
             if v not in dist or cost < dist[v]:
-                dist[v] = cost
+                #dist[v] = cost
+                add_task(v,cost)
                 prev[v] = u
-    #print(len(visited),city.size)
+    if len(visited)%10000 == 0:
+        print(len(visited),city.size*3*4)
     
 on_path = set()
 curr = u
@@ -110,7 +153,7 @@ while True:
     curr = prev[curr]
 print(total)
 
-with open("out2.txt","w") as f:
+with open("out3.txt","w") as f:
     for r in range(len(city)):
         for c in range(len(city[0])):
             if (r,c) in on_path:
