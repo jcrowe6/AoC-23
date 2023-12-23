@@ -3,7 +3,7 @@ import heapq
 import itertools
 
 city = []
-with open("input2.txt") as f:
+with open("input.txt") as f:
     while True:
         line = f.readline()
         if line == '': break
@@ -89,6 +89,7 @@ def unavailable_space(row,col):
 # returns legal neighbors
 def neighbors(row,col,dir,steps):
     out = []
+    
     if dir == 'S':
         out = [(0,1,'R',1),(1,0,'D',1)]
     else:
@@ -111,22 +112,14 @@ def neighbors(row,col,dir,steps):
                     if dir == 'U' or dir == 'D': out.append((r,c,'L',1))
                     # must be already moving L. if <3 steps, take 3rd and final step along this line
                     elif steps < 3: out.append((r,c,'L',steps+1))
-    #print(row,col,dir,steps)
-    #print(out)
-    #input()
     return out
-
-for dir in ['U','R','D','L']:
-    for steps in [1,2,3]:
-        print(dir,steps,neighbors(50,50,dir,steps))
-input()
 
 # dijiktra's
 while True:
     #u = smallest_unvisited()
     u,ucost = pop_task()
     urow,ucol,dir,steps = u
-    if (urow,ucol) == goal: print(u,ucost)
+    if (urow,ucol) == goal: break
     visited.add(u)   
    
     for v in neighbors(urow,ucol,dir,steps):
@@ -134,7 +127,7 @@ while True:
             vrow,vcol,vdir,vsteps = v
             cost = ucost + city[vrow][vcol]
             
-            if v not in dist or cost < dist[v]:
+            if v not in entry_finder or cost < entry_finder[v][0]:
                 #dist[v] = cost
                 add_task(v,cost)
                 prev[v] = u
@@ -153,7 +146,7 @@ while True:
     curr = prev[curr]
 print(total)
 
-with open("out3.txt","w") as f:
+with open("out6.txt","w") as f:
     for r in range(len(city)):
         for c in range(len(city[0])):
             if (r,c) in on_path:
